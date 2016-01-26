@@ -21,7 +21,7 @@ def find_path(src_pt, dst_pt, mesh):
     boxes = mesh['boxes']
     adj = mesh['adj']
 
-    # path, visited = dijkstras(src_pt, dst_pt, boxes, adj)
+    path, visited = dijkstras(src_pt, dst_pt, boxes, adj)
     return path, visited
     pass
 
@@ -30,7 +30,7 @@ def find_path(src_pt, dst_pt, mesh):
 
 def dijkstras(src_pt, dst_pt, mesh, adj):
     # precise x,y position within box that path will traverse
-    # detail_points = { }
+    detail_points = { }
 
     # finds the boxes in which the points reside
     src_box = find_box(src_pt, mesh)
@@ -40,8 +40,8 @@ def dijkstras(src_pt, dst_pt, mesh, adj):
         print("No path possible")
         return [],[]
 
-    distances = {src_box: 0}           # Table of distances to cells
-    previous_cell = {src_box: None}    # Back links from cells to predecessors
+    distances = {src_box: 0}           # Table of distances to boxes
+    prev = {src_box: None}    # Back links from cells to predecessors
     box_coord = {src_box: src_pt}
     queue = [src_box]   # initialize queue as the start box
 
@@ -50,25 +50,25 @@ def dijkstras(src_pt, dst_pt, mesh, adj):
 
     while queue:
         # Continue with next min unvisited node
-        current_distance, current_node = heappop(queue)
+        curr_dist, curr_box = heappop(queue)
 
         # Early termination check: if the dst_pt is found, return the path
-        if current_node == dst_pt:
+        if curr_box == dst_pt:
             node = dst_pt
             path = [node]
             while node is not None:
-                path.append(previous_cell[node])
-                node = previous_cell[node]
+                path.append(prev[node])
+                node = prev[node]
             return path[::-1]
 
         # Calculate tentative distances to adjacent cells
-        for adjacent_node, edge_cost in adj(mesh, current_node):
-            new_distance = current_distance + edge_cost
+        for adjacent_node, edge_cost in adj(mesh, curr_box):
+            new_distance = curr_dist + edge_cost
 
             if adjacent_node not in distances or new_distance < distances[adjacent_node]:
                 # Assign new distance and update link to previous cell
                 distances[adjacent_node] = new_distance
-                previous_cell[adjacent_node] = current_node
+                prev[adjacent_node] = curr_box
                 heappush(queue, (new_distance, adjacent_node))
 
     # Failed to find a path
