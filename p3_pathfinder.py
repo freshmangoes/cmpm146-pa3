@@ -12,22 +12,16 @@ def find_path(src_pt, dst_pt, mesh):
         path, visited_nodes = p3_pathfinder.find_path(src_pt, dst_pt, mesh)
     """
 
-    # src_pt is an (x,y) pair
-    # dst_pt is an (x,y) pair
-    # mesh is a mesh data structure
+    # path = []
+    # visited = []
 
-    path = []
-    visited = []
-
-    boxes = mesh['boxes']
-    adj = mesh['adj']
-
-    # path, visited = dijk(src_pt, dst_pt, mesh, adj)
-    path, visited = dijkstras(src_pt, dst_pt, adj)
+    search_algorithm = dijkstras(src_pt, dst_pt, mesh, navigation_edges)
+    path, visited = search_algorithm
     return path, visited
     pass
 
 # Most likely currently not working because it still needs modification
+
 
 def dijkstras(src_pt, dst_pt, mesh, adj):
 
@@ -51,82 +45,66 @@ def dijkstras(src_pt, dst_pt, mesh, adj):
     src_box = find_box(src_pt, mesh)
     dst_box = find_box(dst_pt, mesh)
 
-    if (src_box is None) or (dst_box is None):
-        print("No path possible")
-        return [], []
-
-    dist = {src_box: 0}           # Table of distances to boxes
-    prev = {src_box: None}    # Back links from cells to predecessors
-    box_coord = {src_box: src_pt}
-    queue = [src_box]   # initialize queue as the start box
-
     # Initial distance for starting position
-    dist[src_box] = 0
+    dist = {src_box: 0}
+    prev = {src_box: None}
 
     path = []
     visited = []
+    queue = []
+
+    queue = [(0, src_box)]
 
     while queue:
         # Continue with next min unvisited node
-        # print(heappop(queue))
-        _, curr_box = heappop(queue)
+        curr_distance, curr_node = heappop(queue)
+        print("curr_node: " +  str(curr_node))
 
         # Early termination check: if the dst_pt is found, return the path
-        if curr_box == dst_pt:
-            node = dst_pt
+        if curr_node == dst_box:
+            node = dst_box
             path = []
             while node is not None:
                 path.append(node)
                 node = prev[node]
-            return path[::-1]
-
+            return path[::-1], visited
+        for adjacent_node, edge_cost in adj(mesh, curr_node):
+            new_distance = curr_distance + edge_cost
+            if adjacent_node not in dist or new_distance < dist[adjacent_node]:
+                dist[adjacent_node] = new_distance
+                prev[adjacent_node] = curr_node
+                heappush(queue, (new_distance, adjacent_node))
     # Failed to find a path
     print("Failed to find a path from", src_pt, "to", dst_pt)
     return None
     pass
 
-# def navigation_edges(mesh, box):
-#     """
-#     Args:
-#         mesh: The mesh bitmap
-#         box: A box
-#
-#     Returns: A list of adjacent boxes to box
-#
-#     Finds the neighbors of box and returns them as a list.
-#
-#     """
-#     x1 = box[2]
-#     y1 = box[0]
-#     x2 = box[3]
-#     y2 = box[1]
-#
-#     adj_boxes = {}
-#
-#     neighbors = mesh['adj'][box]
-#     for n in neighbors:
-#         next_box =
-#
-#     pass
 
-# def navigation_edges(mesh, box):
-#
-#     x1 = box[2]
-#     y1 = box[0]
-#     x2 = box[3]
-#     y2 = box[1]
-#
-#     boxes = mesh['boxes']
-#     adj_boxes = {}
-#     for dx in [-1, 0, 1]:
-#         for dy in[ -1, 0, 1]:
-#             next_box = (x+dx, y+dy)
-#             if next_box != box and next_box in boxes:
-#                 dist = sqrt(dx ** 2 + dy ** 2)
-#                 adj_boxes[next_box] = dist * (boxes[box] + boxes[next_box])/2
-#     return adj_boxes.items()
-#
-#     pass
+def navigation_edges(mesh, box):
+    """ Provides a list of adjacent cells and their respective costs from the given box.
+
+    Args:
+        mesh: A loaded mesh, containing walls, spaces, and waypoints.
+        box: A target location.
+
+    Returns:
+        A list of tuples containing an adjacent box's coordinates and the cost of the edge joining it and the
+        originating box.
+
+        E.g. from (0,0):
+            [((0,1), 1),
+             ((1,0), 1),
+             ((1,1), 1.4142135623730951),
+             ... ]
+    """
+
+    result = []
+    for b in mesh['adj'][box]:
+        a = 1/(box[1] - box[0] * box[3] - box[2])
+        result.append((b, a))
+    return result
+
+    pass
 
 
 def in_box(point, box):
@@ -142,16 +120,16 @@ def in_box(point, box):
     """
 
     # x and y coordinates
-    y = point[0]
-    x = point[1]
+    x = point[0]
+    y = point[1]
 
     # x1 and y1 coordinates of box
-    b_y1 = box[0]
-    b_x1 = box[2]
+    b_x1 = box[0]
+    b_y1 = box[2]
 
     # x2 and y2 coordinates of box
-    b_y2 = box[1]
-    b_x2 = box[3]
+    b_x2 = box[1]
+    b_y2 = box[3]
 
     # Checking to see if point is within box
     if b_x1 <= x <= b_x2:
@@ -181,6 +159,14 @@ def find_box(point, mesh):
             return box
     return None
 
+
+def euclidian_dist(b1, b2):
+    dx = b1[0] - b2[0]
+    dy = b1[1] - b2[2]
+
+    prod = sqrt(dx*dx + dy*dy)
+    return prod
+    pass
 
 
 def aStar():
