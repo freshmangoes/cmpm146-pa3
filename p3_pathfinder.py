@@ -21,8 +21,6 @@ def find_path(src_pt, dst_pt, mesh):
     boxes = mesh['boxes']
     adj = mesh['adj']
 
-    print(adj(1))
-
     # path, visited = dijkstras(src_pt, dst_pt, boxes, adj)
     return path, visited
     pass
